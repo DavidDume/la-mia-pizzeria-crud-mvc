@@ -28,6 +28,9 @@
         }
         else
         {
+            <a href="@Url.Action("Create", "Pizza")" class="btn btn-primary">
+                Create
+            </a>
             <table class="table">
                 <thead>
                     <tr>
@@ -47,7 +50,12 @@
                             <td><img src="@pizza.Image" /></td>
                             <td>@pizza.Price €</td>
                             <td>
-                                <a class="btn btn-secondary" href="@Url.Action("Details", "Pizza", new { id = pizza.Id })" title="pizza details">Dettagli</a>
+                                <a class="btn btn-secondary" href="@Url.Action("Details", "Pizza", new { id = pizza.Id })">Dettagli</a>
+                                <a class="btn btn-warning" href="@Url.Action("Update", "Pizza", new { id = pizza.Id })">Modifica</a>
+                                <form asp-controller="Pizza" asp-action="Delete" asp-route-id="@pizza.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" style="height: 2.5rem;" class="btn btn-danger">Elimina</button>
+                                </form>
                             </td>
                         </tr>
                     }
