@@ -1,11 +1,15 @@
 ﻿using la_mia_pizzeria_crud_mvc.Database;
 using la_mia_pizzeria_crud_mvc.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace la_mia_pizzeria_crud_mvc.Controllers
 {
     public class PizzaController : Controller
     {
+
+        private readonly PizzaContext _db;
         public IActionResult Index()
         {
             using (PizzaContext db = new PizzaContext())
@@ -19,7 +23,7 @@ namespace la_mia_pizzeria_crud_mvc.Controllers
         {
             using (PizzaContext db = new PizzaContext())
             {
-                Pizza? Pizza = db.Pizzas.Where(pizza => pizza.Id == id).FirstOrDefault();
+                Pizza? Pizza = db.Pizzas.Where(pizza => pizza.Id == id).Include(pizza => pizza.Category).FirstOrDefault();
 
                 if (Pizza == null)
                 {
@@ -34,7 +38,15 @@ namespace la_mia_pizzeria_crud_mvc.Controllers
         [HttpGet]
         public IActionResult Create()
         {
-            return View("Create");
+            using (PizzaContext db = new())
+            {
+                List<Category> categories = db.Categories.ToList();
+                PizzaForm model = new();
+                model.Pizza = new Pizza();
+                model.Categories = categories;
+
+                return View("Create", model);
+            }
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -57,7 +69,7 @@ namespace la_mia_pizzeria_crud_mvc.Controllers
         {
             using (PizzaContext db = new PizzaContext())
             {
-                Pizza pizzaToEdit = db.Pizzas.Where(pizza => pizza.Id == id).FirstOrDefault() as Pizza;
+                Pizza pizzaToEdit = db.Pizzas.Where(pizza => pizza.Id == id).Include(pizza => pizza.Category).FirstOrDefault() as Pizza;
 
                 if (pizzaToEdit == null)
                 {
@@ -65,39 +77,54 @@ namespace la_mia_pizzeria_crud_mvc.Controllers
                 }
                 else
                 {
-                    return View("Update", pizzaToEdit);
+                    List<Category> categories = db.Categories.ToList();
+                    PizzaForm model = new();
+                    model.Pizza = pizzaToEdit;
+                    model.Categories = categories;
+
+                    return View("Update", model);
                 }
             }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Update(int id, Pizza updatedPizza)
+        public IActionResult Update(int id, PizzaForm updatedPizza)
         {
-            if (!ModelState.IsValid)
+            var pizza = _db.Pizzas.Include(p => p.Ingredients).Include(p => p.Category).DefaultIfEmpty().SingleOrDefault(p => p.Id == id);
+
+            if (pizza is null)
             {
-                return View("Update", updatedPizza);
-            }
 
-            using (PizzaContext db = new PizzaContext())
+                    List<Category> Categorie = _db.Categories.ToList();
+                    updatedPizza.Categories = Categorie;
+                    return View("Update", updatedPizza);
+                
+                    
+            } else
             {
-                Pizza pizzaToUpdate = db.Pizzas.Where(pizza => pizza.Id == id).FirstOrDefault();
-
-                if (pizzaToUpdate != null)
+                updatedPizza.Pizza.Id = id;
+                using (PizzaContext db = new PizzaContext())
                 {
-                    pizzaToUpdate.Name = updatedPizza.Name;
-                    pizzaToUpdate.Description = updatedPizza.Description;
-                    pizzaToUpdate.Image = updatedPizza.Image;
-                    pizzaToUpdate.Price = updatedPizza.Price;
+                    Pizza? pizzaToUpdate = db.Pizzas.Where(pizza => pizza.Id == id).Include(pizza => pizza.Category).FirstOrDefault();
 
-                    db.SaveChanges();
-                    return RedirectToAction("Index");
-                }
-                else
-                {
-                    return NotFound("Mi spiace, non sono state trovate Pizze da aggiornare");
+                    if (pizzaToUpdate != null)
+                    {
+                        pizzaToUpdate.Name = updatedPizza.Pizza.Name;
+                        pizzaToUpdate.Description = updatedPizza.Pizza.Description;
+                        pizzaToUpdate.Image = updatedPizza.Pizza.Image;
+                        pizzaToUpdate.Price = updatedPizza.Pizza.Price;
+
+                        db.SaveChanges();
+                        return RedirectToAction("Index");
+                    }
+                    else
+                    {
+                        return NotFound("Mi spiace, non sono state trovate Pizze da aggiornare");
+                    }
                 }
             }
+            
         }
 
         [HttpPost]

@@ -17,7 +17,10 @@ namespace la_mia_pizzeria_crud_mvc.Models
         [MaxLength(500, ErrorMessage = "Il link non può essere più lungo di 500 caratteri")]
         public string Image { get; set; }
         public float Price { get; set; }
+        public int? CategoryId { get; set; }
+        public Category? Category { get; set; }
 
+        public List<Ingredient>? Ingredients { get; set; }
         public Pizza() { }
         public Pizza(string name, string description, string image, float price)
         {
